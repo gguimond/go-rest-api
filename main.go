@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"go-rest-api/controllers"
+	"go-rest-api/middleware"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func main() {
@@ -19,25 +18,16 @@ func main() {
 	}
 
 	database := client.Database("quickstart")
-	episodesCollection := database.Collection("episodes")
-
-	var episodes []Episode
-	cursor, err := episodesCollection.Find(ctx, bson.M{})
-	if err != nil {
-		panic(err)
-	}
-	if err = cursor.All(ctx, &episodes); err != nil {
-		panic(err)
-	}
-	fmt.Println(episodes)
+	r.Use(middleware.DB(database))
 
 	// Release resource when the main
 	// function is returned.
 	defer close(client, ctx, cancel)
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"data": "hello world"})
-	})
+	r.GET("/", controllers.GetEpisodes)
+	r.POST("/", controllers.InsertOneEpisode)
+	r.PUT("/:id", controllers.UpdateOneEpisode)
+	r.DELETE("/:id", controllers.DeleteOneEpisode)
 
 	r.Run()
 }
